@@ -1,54 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/gridLayout1"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
-
-    <ToggleButton
-        android:id="@+id/toggleButton1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_column="1"
-        android:layout_columnSpan="2"
-        android:layout_row="1"
-        android:text="ToggleButton" />
+    android:layout_height="match_parent"
+    android:alignmentMode="alignBounds"
+    android:columnCount="4"
+    android:columnOrderPreserved="false"
+    android:useDefaultMargins="true" >
 
     <CheckBox
         android:id="@+id/checkBoxCFQ"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_column="2"
-        android:layout_row="3"
-        android:layout_rowSpan="5"
+        android:layout_columnSpan="2"
         android:text="@string/cfq_on_startup" />
 
-    <Space
-        android:layout_width="1dp"
-        android:layout_height="1dp"
-        android:layout_column="1"
-        android:layout_row="9" />
+    <TextView
+        android:id="@+id/textView"
+        android:text="status"
+        android:layout_columnSpan="2"
+        android:textAppearance="?android:attr/textAppearanceMedium" >
+    </TextView>
 
-    <Space
-        android:layout_width="32dp"
-        android:layout_height="1dp"
+    <TextView
+        android:layout_gravity="fill_horizontal"
+        android:layout_width="1px"
+        android:layout_height="1px"
+        android:layout_columnSpan="4"
+        android:background="#aaaaaa">
+    </TextView>
+    
+    <TextView
+        android:layout_gravity="fill_vertical"
+        android:layout_width="1px"
+        android:layout_height="1px"
+        android:layout_rowSpan="6"
+        android:background="#aaaaaa"
+        android:layout_column="2">
+    </TextView>
+    
+    <ListView
+        android:layout_column="3"
+        android:id="@+id/listViewModules"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="fill"
+        android:layout_rowSpan="6" >
+
+        <!-- Preview: listitem=@android:layout/simple_list_item_checked -->
+    </ListView>
+
+    <TextView
         android:layout_column="0"
-        android:layout_row="0" />
+        android:text="Power Saving"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
 
-    <Space
-        android:layout_width="1dp"
-        android:layout_height="32dp"
+    <ToggleButton
+        android:id="@+id/toggleButtonPowerSaving"
+        android:text="ToggleButton" />
+
+    <TextView
         android:layout_column="0"
-        android:layout_row="0" />
+        android:text="Balanced"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
 
-    <Space
-        android:layout_width="2667dp"
-        android:layout_height="1dp"
-        android:layout_column="2"
-        android:layout_row="0" />
+    <ToggleButton
+        android:id="@+id/toggleButtonBalanced"
+        android:text="ToggleButton" />
 
-    <Space
-        android:layout_width="1dp"
-        android:layout_height="16dp"
+    <TextView
         android:layout_column="0"
-        android:layout_row="2" />
+        android:text="Performance"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ToggleButton
+        android:id="@+id/toggleButtonPerformance"
+        android:text="ToggleButton" />
+
+    <TextView
+        android:layout_column="0"
+        android:text="Turbo1"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ToggleButton
+        android:id="@+id/toggleButtonTurbo1"
+        android:text="ToggleButton" />
+
+    <TextView
+        android:layout_column="0"
+        android:text="Turbo2"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ToggleButton
+        android:id="@+id/toggleButtonTurbo2"
+        android:text="ToggleButton" />
 
 </GridLayout>

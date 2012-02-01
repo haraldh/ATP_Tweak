@@ -1,30 +1,31 @@
 package backslash.atp;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.SparseBooleanArray;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.AssetManager;
-import java.io.FileOutputStream;
-
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-
 public class widgetActivity extends Activity {
 	public static final String LOG_TAG = "ATP_Tweaks";
+	final int toggleids[] = { R.id.toggleButtonPowerSaving,
+			R.id.toggleButtonBalanced, R.id.toggleButtonPerformance,
+			R.id.toggleButtonTurbo1, R.id.toggleButtonTurbo2 };
 
 	private void updateStatus() {
 		final TextView tv = (TextView) findViewById(R.id.textView);
@@ -44,23 +45,74 @@ public class widgetActivity extends Activity {
 		super.onCreate(savedInstanceState);
 
 		Context context = getApplicationContext();
-		if( ! Util.canGainSu(context) ) {
+
+		if (!Util.canGainSu(context)) {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setMessage("Cannot get Root/Superuser.\nExiting!")
-			       .setCancelable(false)
-			       .setNeutralButton("OK", new DialogInterface.OnClickListener() {
-			           public void onClick(DialogInterface dialog, int id) {
-			                dialog.cancel();
-			    			System.exit(2);
-			           }
-			       });
+					.setCancelable(false)
+					.setNeutralButton("OK",
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog,
+										int id) {
+									dialog.cancel();
+									System.exit(2);
+								}
+							});
 			AlertDialog alert = builder.create();
 			alert.show();
 			return;
 		}
-				
+
 		setContentView(R.layout.main);
-		checkModules(savedInstanceState);
+
+		int versionCode;
+		try {
+			versionCode = getPackageManager().getPackageInfo(getPackageName(),
+					0).versionCode;
+		} catch (NameNotFoundException e) {
+			versionCode = 1;
+		}
+		AssetManager am = getResources().getAssets();
+		Modules modules = new Modules(am, context, versionCode);
+		String[] modloaded = modules.getModules();
+
+		ListView listview = (ListView) findViewById(R.id.listViewModules);
+		listview.setAdapter(new ArrayAdapter<String>(widgetActivity.this,
+				android.R.layout.simple_list_item_multiple_choice,
+				android.R.id.text1, modloaded));
+		listview.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+
+		listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			public void onItemClick(AdapterView<?> parent, View arg1, int pos,
+					long arg3) {
+				Context context = getApplicationContext();
+				ListView lv = (ListView) parent;
+				SparseBooleanArray cp = lv.getCheckedItemPositions();
+				StringBuilder b = new StringBuilder();
+				for (int k = 0; k < cp.size(); k++) {
+					int i = cp.keyAt(k);
+					if (i < 0)
+						continue;
+					String module = (String) lv.getItemAtPosition(i);
+					boolean checked = cp.valueAt(k);
+					if (checked) {
+						b.append("insmod "
+								+ context.getFileStreamPath(module + ".ko")
+										.getPath() + ";");
+					} else {
+						b.append("rmmod " + module.replace("-", "_") + ";");
+					}
+				}
+
+				Util.suExec(context, b.toString());
+				updateStatus();
+			}
+		});
+		/*
+		 * Toast.makeText(getBaseContext(), "Modules loaded:\n" + finalString,
+		 * Toast.LENGTH_LONG).show();
+		 */
 
 		final CheckBox checkBox = (CheckBox) findViewById(R.id.checkBoxCFQ);
 
@@ -68,7 +120,8 @@ public class widgetActivity extends Activity {
 			public void onCheckedChanged(CompoundButton buttonView,
 					boolean isChecked) {
 				Context context = getApplicationContext();
-				SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+				SharedPreferences mPrefs = PreferenceManager
+						.getDefaultSharedPreferences(context);
 				SharedPreferences.Editor ed = mPrefs.edit();
 				if (isChecked) {
 					ed.putBoolean("onStartup", true);
@@ -81,9 +134,41 @@ public class widgetActivity extends Activity {
 				updateStatus();
 			}
 		};
+
 		checkBox.setOnCheckedChangeListener(listener);
 
-		SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+		ToggleButton.OnClickListener togglelistener = new ToggleButton.OnClickListener() {
+			public void onClick(View v) {
+				int id = v.getId();
+				ToggleButton togglebutton = (ToggleButton) findViewById(id);
+
+				for (int i = 0; i < toggleids.length; i++) {
+					if (toggleids[i] == id) {
+						togglebutton.setChecked(true);
+						String script = "source /system/etc/cpu" + (i + 1)
+								+ ".sh\n";
+						/*
+						 * Toast.makeText(getBaseContext(), script,
+						 * Toast.LENGTH_LONG).show();
+						 */
+						Context context = getApplicationContext();
+
+						Util.suExec(context, script);
+					} else {
+						ToggleButton tb = (ToggleButton) findViewById(toggleids[i]);
+						tb.setChecked(false);
+					}
+				}
+			}
+		};
+
+		for (int i : toggleids) {
+			ToggleButton togglebutton = (ToggleButton) findViewById(i);
+			togglebutton.setOnClickListener(togglelistener);
+		}
+
+		SharedPreferences mPrefs = PreferenceManager
+				.getDefaultSharedPreferences(context);
 		Boolean onStartup = mPrefs.getBoolean("onStartup", false);
 		SharedPreferences.Editor ed = mPrefs.edit();
 		ed.putBoolean("onStartup", onStartup);
@@ -96,77 +181,5 @@ public class widgetActivity extends Activity {
 			Util.cfq_unload(context);
 
 		updateStatus();
-	}
-
-	public void checkModules(Bundle savedInstanceState) {
-		int versionCode, storedVersionCode;
-		Context context = getApplicationContext();
-		SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-		SharedPreferences.Editor ed = mPrefs.edit();
-
-		try {
-			versionCode = getPackageManager().getPackageInfo(getPackageName(),
-					0).versionCode;
-		} catch (NameNotFoundException e) {
-			versionCode = 1;
-		}
-		storedVersionCode = mPrefs.getInt("versionCode", 0);
-
-		AssetManager am = getResources().getAssets();
-		String assets[] = null;
-		try {
-			assets = am.list("");
-		} catch (IOException ex) {
-			;
-		}
-		for (int i = 0; i < assets.length; ++i) {
-			File f = getFileStreamPath(assets[i]);
-
-			if (f.exists() && versionCode <= storedVersionCode)
-				continue;
-
-			InputStream from;
-			FileOutputStream to;
-			try {
-				from = am.open(assets[i]);
-				to = openFileOutput(assets[i], Context.MODE_PRIVATE);
-			} catch (IOException ex) {
-				continue;
-			}
-
-			try {
-				byte[] buffer = new byte[4096];
-				int bytesRead;
-
-				try {
-					while ((bytesRead = from.read(buffer)) != -1)
-						to.write(buffer, 0, bytesRead);
-				} catch (IOException e) {
-					try {
-						to.close();
-						to = null;
-					} catch (IOException e1) {
-						;
-					}
-					f.delete();
-				}
-			} finally {
-				if (from != null)
-					try {
-						from.close();
-					} catch (IOException e) {
-						;
-					}
-				if (to != null)
-					try {
-						to.close();
-					} catch (IOException e) {
-						;
-					}
-			}
-		}
-
-		ed.putInt("versionCode", versionCode);
-		ed.commit();
 	}
 }

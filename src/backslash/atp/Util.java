@@ -123,7 +123,10 @@ public class Util {
 	
 	public static void loadModule(Context context, String module) {
 		suExec(context, "insmod " + context.getFileStreamPath(module + ".ko").getPath());
+	}
 
+	public static void unloadModule(Context context, String module) {
+		suExec(context, "rmmod " + module.replace("-", "_"));		
 	}
 
 	public static void setScheduler(Context context, String scheduler) {
