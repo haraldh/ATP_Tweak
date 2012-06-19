@@ -1,8 +1,5 @@
 package backslash.atp;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 
 import android.app.Activity;
@@ -20,7 +17,6 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.AssetManager;
@@ -236,12 +232,12 @@ public class widgetActivity extends Activity {
 			}
 		});
 	}
-
+/*
 	private Boolean checkSuPerm() {
 		return true;
 	}
-
-	private Boolean checkSuPerms() {
+*/
+	private Boolean checkSuPerm() {
 		if (!Util.canGainSu(this)) {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setMessage("Cannot get Root/Superuser.\nExiting!")
@@ -276,7 +272,7 @@ public class widgetActivity extends Activity {
 			updateStatus();
 		}
 
-		public void onNothingSelected(AdapterView parent) {
+		public void onNothingSelected(AdapterView<?> parent) {
 			// Do nothing.
 		}
 	}
