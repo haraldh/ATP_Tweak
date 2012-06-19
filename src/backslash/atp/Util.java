@@ -130,8 +130,8 @@ public class Util {
 	}
 
 	public static void setScheduler(Context context, String scheduler) {
+		loadModule(context, scheduler + "-iosched");
 		suExec(context, "echo " + scheduler + " > /sys/block/mmcblk0/queue/scheduler");
-
 	}
 
 	public static void cfq_load(Context context) {

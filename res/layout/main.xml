@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:alignmentMode="alignBounds"
-    android:columnCount="4"
+    android:columnCount="5"
     android:columnOrderPreserved="false"
     android:useDefaultMargins="true" >
 
@@ -13,35 +13,40 @@
         android:layout_columnSpan="2"
         android:text="@string/cfq_on_startup" />
 
+    <Spinner
+        android:id="@+id/spinnerScheduler"
+        android:layout_columnSpan="2"
+        android:layout_gravity="fill_horizontal" />
+
     <TextView
         android:id="@+id/textView"
         android:text="status"
-        android:layout_columnSpan="2"
         android:textAppearance="?android:attr/textAppearanceMedium" >
     </TextView>
 
     <TextView
-        android:layout_gravity="fill_horizontal"
         android:layout_width="1px"
         android:layout_height="1px"
         android:layout_columnSpan="4"
-        android:background="#aaaaaa">
+        android:layout_gravity="fill_horizontal"
+        android:background="#aaaaaa" >
     </TextView>
-    
+
     <TextView
-        android:layout_gravity="fill_vertical"
         android:layout_width="1px"
         android:layout_height="1px"
+        android:layout_column="2"
+        android:layout_gravity="fill_vertical"
         android:layout_rowSpan="6"
-        android:background="#aaaaaa"
-        android:layout_column="2">
+        android:background="#aaaaaa" >
     </TextView>
-    
+
     <ListView
-        android:layout_column="3"
         android:id="@+id/listViewModules"
         android:layout_width="50dp"
         android:layout_height="50dp"
+        android:layout_column="3"
+        android:layout_columnSpan="2"
         android:layout_gravity="fill"
         android:layout_rowSpan="6" >
 

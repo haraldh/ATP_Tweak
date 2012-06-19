@@ -57,7 +57,8 @@ public class ServiceModuleLoader extends Service {
 			String scheduler = mPrefs.getString("scheduler", "cfq");
 			Util.setScheduler(scheduler);
 			*/
-			Util.cfq_load(context);
+			String scheduler = mPrefs.getString("scheduler", "noop");
+			Util.setScheduler(context, scheduler);
 		}
 		stopSelf();
 	}

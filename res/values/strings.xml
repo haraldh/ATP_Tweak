@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ATP Tweak</string>
-    <string name="cfq_on_startup">Set CFQ scheduler on startup</string>
+    <string name="cfq_on_startup">Set scheduler on startup</string>
     <string name="buttonCFQ">Set CFQ Scheduler</string>        
 </resources>

@@ -86,8 +86,18 @@ public class Modules {
 		ed.apply();
 	}
 
+	public String[] lsmod() {
+//		List<String> modules = new ArrayList<String>();
+		return (String[]) modules.toArray(new String[0]);
+	}
+	
+	public List<String> lsmodList() {
+		return modules;
+	}
+
 	public String[] getModules() {
 		return (String[]) modules.toArray(new String[0]);
 	}
+
 
 }

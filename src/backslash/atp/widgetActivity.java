@@ -1,5 +1,10 @@
 package backslash.atp;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
@@ -7,11 +12,13 @@ import android.preference.PreferenceManager;
 import android.util.SparseBooleanArray;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -27,6 +34,10 @@ public class widgetActivity extends Activity {
 			R.id.toggleButtonBalanced, R.id.toggleButtonPerformance,
 			R.id.toggleButtonTurbo1, R.id.toggleButtonTurbo2 };
 
+	private ListView listview = null;
+	private CheckBox checkBox = null;
+	private Modules modules = null;
+
 	private void updateStatus() {
 		final TextView tv = (TextView) findViewById(R.id.textView);
 		String scheds[] = Util.getSchedulers();
@@ -39,29 +50,42 @@ public class widgetActivity extends Activity {
 		tv.setText(builder.toString());
 	}
 
+	private void updateSpinner() {
+		String scheds[] = Util.getSchedulers();
+		Spinner s = (Spinner) findViewById(R.id.spinnerScheduler);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+				android.R.layout.simple_spinner_item, scheds);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		s.setAdapter(adapter);
+
+		SharedPreferences mPrefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		String scheduler = mPrefs.getString("scheduler", "cfq");
+
+		for (int i = 0; i < scheds.length; i++) {
+			if (scheduler.equals(scheds[i]))
+				s.setSelection(i);
+		}
+
+	}
+
+	private void updateModules() {
+		String[] modloaded = modules.getModules();
+		List<String> lsmod = modules.lsmodList();
+		for (int i = 0; i < modloaded.length; i++) {
+			if (lsmod.contains(modloaded[i]))
+				listview.setItemChecked(i, true);
+			else
+				listview.setItemChecked(i, false);
+		}
+	}
+
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		Context context = getApplicationContext();
-
-		if (!Util.canGainSu(context)) {
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setMessage("Cannot get Root/Superuser.\nExiting!")
-					.setCancelable(false)
-					.setNeutralButton("OK",
-							new DialogInterface.OnClickListener() {
-								public void onClick(DialogInterface dialog,
-										int id) {
-									dialog.cancel();
-									System.exit(2);
-								}
-							});
-			AlertDialog alert = builder.create();
-			alert.show();
-			return;
-		}
+		checkSuPerm();
 
 		setContentView(R.layout.main);
 
@@ -73,70 +97,36 @@ public class widgetActivity extends Activity {
 			versionCode = 1;
 		}
 		AssetManager am = getResources().getAssets();
-		Modules modules = new Modules(am, context, versionCode);
+		modules = new Modules(am, this, versionCode);
 		String[] modloaded = modules.getModules();
 
-		ListView listview = (ListView) findViewById(R.id.listViewModules);
-		listview.setAdapter(new ArrayAdapter<String>(widgetActivity.this,
-				android.R.layout.simple_list_item_multiple_choice,
-				android.R.id.text1, modloaded));
-		listview.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+		setupModulesListView(modloaded);
 
-		listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+		setupSchedulerCheckBox();
 
-			public void onItemClick(AdapterView<?> parent, View arg1, int pos,
-					long arg3) {
-				Context context = getApplicationContext();
-				ListView lv = (ListView) parent;
-				SparseBooleanArray cp = lv.getCheckedItemPositions();
-				StringBuilder b = new StringBuilder();
-				for (int k = 0; k < cp.size(); k++) {
-					int i = cp.keyAt(k);
-					if (i < 0)
-						continue;
-					String module = (String) lv.getItemAtPosition(i);
-					boolean checked = cp.valueAt(k);
-					if (checked) {
-						b.append("insmod "
-								+ context.getFileStreamPath(module + ".ko")
-										.getPath() + ";");
-					} else {
-						b.append("rmmod " + module.replace("-", "_") + ";");
-					}
-				}
+		setupCPUToggleButtons();
 
-				Util.suExec(context, b.toString());
-				updateStatus();
-			}
-		});
-		/*
-		 * Toast.makeText(getBaseContext(), "Modules loaded:\n" + finalString,
-		 * Toast.LENGTH_LONG).show();
-		 */
+		SharedPreferences mPrefs = PreferenceManager
+				.getDefaultSharedPreferences(this);
+		Boolean onStartup = mPrefs.getBoolean("onStartup", false);
+		SharedPreferences.Editor ed = mPrefs.edit();
+		ed.putBoolean("onStartup", onStartup);
+		ed.apply();
+		checkBox.setChecked(onStartup);
 
-		final CheckBox checkBox = (CheckBox) findViewById(R.id.checkBoxCFQ);
+		String scheduler = mPrefs.getString("scheduler", "noop");
+		ed.putString("scheduler", scheduler);
+		ed.apply();
 
-		OnCheckedChangeListener listener = new OnCheckedChangeListener() {
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-				Context context = getApplicationContext();
-				SharedPreferences mPrefs = PreferenceManager
-						.getDefaultSharedPreferences(context);
-				SharedPreferences.Editor ed = mPrefs.edit();
-				if (isChecked) {
-					ed.putBoolean("onStartup", true);
-					Util.cfq_load(context);
-				} else {
-					ed.putBoolean("onStartup", false);
-					Util.cfq_unload(context);
-				}
-				ed.apply();
-				updateStatus();
-			}
-		};
+		Util.setScheduler(this, scheduler);
 
-		checkBox.setOnCheckedChangeListener(listener);
+		Spinner s = (Spinner) findViewById(R.id.spinnerScheduler);
+		s.setOnItemSelectedListener(new MyOnItemSelectedListener());
+		updateSpinner();
+		updateStatus();
+	}
 
+	private void setupCPUToggleButtons() {
 		ToggleButton.OnClickListener togglelistener = new ToggleButton.OnClickListener() {
 			public void onClick(View v) {
 				int id = v.getId();
@@ -166,20 +156,129 @@ public class widgetActivity extends Activity {
 			ToggleButton togglebutton = (ToggleButton) findViewById(i);
 			togglebutton.setOnClickListener(togglelistener);
 		}
-
-		SharedPreferences mPrefs = PreferenceManager
-				.getDefaultSharedPreferences(context);
-		Boolean onStartup = mPrefs.getBoolean("onStartup", false);
-		SharedPreferences.Editor ed = mPrefs.edit();
-		ed.putBoolean("onStartup", onStartup);
-		ed.apply();
-		checkBox.setChecked(onStartup);
-
-		if (onStartup)
-			Util.cfq_load(getApplicationContext());
-		else
-			Util.cfq_unload(context);
-
-		updateStatus();
 	}
+
+	private void setupSchedulerCheckBox() {
+		checkBox = (CheckBox) findViewById(R.id.checkBoxCFQ);
+
+		OnCheckedChangeListener listener = new OnCheckedChangeListener() {
+			public void onCheckedChanged(CompoundButton buttonView,
+					boolean isChecked) {
+				Context context = getApplicationContext();
+				SharedPreferences mPrefs = PreferenceManager
+						.getDefaultSharedPreferences(context);
+				SharedPreferences.Editor ed = mPrefs.edit();
+				if (isChecked) {
+					ed.putBoolean("onStartup", true);
+					Util.cfq_load(context);
+				} else {
+					ed.putBoolean("onStartup", false);
+					Util.cfq_unload(context);
+				}
+				ed.apply();
+				updateStatus();
+			}
+		};
+
+		checkBox.setOnCheckedChangeListener(listener);
+	}
+
+	private void setupModulesListView(String[] modloaded) {
+		listview = (ListView) findViewById(R.id.listViewModules);
+		listview.setAdapter(new ArrayAdapter<String>(widgetActivity.this,
+				android.R.layout.simple_list_item_multiple_choice,
+				android.R.id.text1, modloaded) {
+
+			public boolean areAllItemsEnabled() {
+				return false;
+			}
+
+			public boolean isEnabled(int position) {
+				// return false if position == position you want to disable
+				String module = (String) getItem(position);
+				if (module.equals(Util.getActiveScheduler() + "-iosched"))
+					return false;
+				return true;
+			}
+		});
+
+		listview.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+
+		updateModules();
+
+		listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			public void onItemClick(AdapterView<?> parent, View arg1, int pos,
+					long arg3) {
+				Context context = getApplicationContext();
+				ListView lv = (ListView) parent;
+				SparseBooleanArray cp = lv.getCheckedItemPositions();
+				StringBuilder b = new StringBuilder();
+				for (int k = 0; k < cp.size(); k++) {
+					int i = cp.keyAt(k);
+					if (i < 0)
+						continue;
+					String module = (String) lv.getItemAtPosition(i);
+					boolean checked = cp.valueAt(k);
+					if (checked) {
+						b.append("insmod "
+								+ context.getFileStreamPath(module + ".ko")
+										.getPath() + ";");
+					} else {
+						b.append("rmmod " + module.replace("-", "_") + ";");
+					}
+				}
+
+				Util.suExec(context, b.toString());
+				updateStatus();
+				updateSpinner();
+				updateModules();
+			}
+		});
+	}
+
+	private Boolean checkSuPerm() {
+		return true;
+	}
+
+	private Boolean checkSuPerms() {
+		if (!Util.canGainSu(this)) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setMessage("Cannot get Root/Superuser.\nExiting!")
+					.setCancelable(false)
+					.setNeutralButton("OK",
+							new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog,
+										int id) {
+									dialog.cancel();
+									System.exit(2);
+								}
+							});
+			AlertDialog alert = builder.create();
+			alert.show();
+			return false;
+		}
+		return true;
+	}
+
+	public class MyOnItemSelectedListener implements OnItemSelectedListener {
+
+		public void onItemSelected(AdapterView<?> parent, View view, int pos,
+				long id) {
+			Context context = getApplicationContext();
+			String scheduler = parent.getItemAtPosition(pos).toString();
+			Util.setScheduler(context, scheduler);
+			SharedPreferences mPrefs = PreferenceManager
+					.getDefaultSharedPreferences(context);
+			SharedPreferences.Editor ed = mPrefs.edit();
+			ed.putString("scheduler", scheduler);
+			ed.apply();
+			updateStatus();
+		}
+
+		public void onNothingSelected(AdapterView parent) {
+			// Do nothing.
+		}
+	}
+
 }
